@@ -1,0 +1,12 @@
+Flask
+Flask-Cors
+flask-restx
+pyodbc
+Pillow
+requests
+beautifulsoup4
+numpy
+selenium
+webdriver-manager
+apscheduler
+waitress

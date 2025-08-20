@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>اطلاعات مشتری</title>
+    <style>
+        body {
+            font-family: Tahoma;
+            direction: rtl;
+            background-color: #f2f2f2;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .info-box {
+            background-color: white;
+            padding: 25px;
+            margin: 0 auto;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: red;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="info-box">
+        {% if customer %}
+        <h2>اطلاعات مشتری</h2>
+        <p><strong>کد:</strong> {{ customer.C_Code }}</p>
+        <p><strong>نام:</strong> {{ customer.C_Name }}</p>
+        <p><strong>تلفن:</strong> {{ customer.C_Tel }}</p>
+        <p><strong>آدرس:</strong> {{ customer.C_Address }}</p>
+        <p><strong>کد مشتری ثانویه:</strong> {{ customer.C_Code_C }}</p>
+        <p><strong>کد شهر:</strong> {{ customer.City_Code }}</p>
+        <p><strong>نام شهر:</strong> {{ customer.City_Name }}</p>
+        <p><strong>اعتبار:</strong> {{ customer.Etebar }}</p>
+        <p><strong>مانده حساب:</strong> {{ customer.Mandeh }}</p>
+        <p><strong>کد ملی:</strong> {{ customer.National_Code }}</p>
+        <p><strong>وضعیت مشتری:</strong> {{ customer.Vaziat }}</p>
+        {% else %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+
+</html>

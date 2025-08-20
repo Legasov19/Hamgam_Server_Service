@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>نتایج جستجو</title>
+    <style>
+        body {
+            font-family: Tahoma;
+            direction: rtl;
+            background-color: #f9f9f9;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .section {
+            background-color: white;
+            padding: 20px;
+            margin: 10px auto;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        ul {
+            list-style: none;
+            padding-right: 0;
+        }
+
+        li {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .not-found {
+            color: red;
+            margin-top: 15px;
+        }
+
+        .link-style {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .link-style:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="section">
+        <h2>نتایج جستجو برای: "{{ keyword }}"</h2>
+
+        {% if article_results %}
+        <h3>نام کالاهای مشابه:</h3>
+        <ul>
+            {% for row in article_results %}
+            <li>
+                <form method="POST" action="{{ url_for('holoo.product_info') }}" style="display:inline;">
+                    <input type="hidden" name="a_code" value="{{ row.A_Code }}">
+                    <button type="submit" class="link-style"
+                        style="background:none; border:none; padding:0; cursor:pointer;">
+                        {{ row.A_Name }}
+                    </button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="not-found">نتیجه‌ای یافت نشد.</p>
+        {% endif %}
+    </div>
+
+</body>
+
+</html>

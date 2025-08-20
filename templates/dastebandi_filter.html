@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>دسته‌بندی کالاها</title>
+    <style>
+        body {
+            font-family: Tahoma;
+            direction: rtl;
+            background: #f9f9f9;
+            padding: 20px;
+        }
+
+        .group {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background: #fff;
+        }
+
+        .group h2 {
+            color: #2e7d32;
+        }
+
+        .subgroup {
+            margin-right: 20px;
+            margin-top: 15px;
+        }
+
+        .subgroup h3 {
+            color: #1565c0;
+        }
+
+        ul {
+            list-style-type: square;
+            padding-right: 20px;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+            margin: 10px 0;
+            width: 250px;
+        }
+
+        button {
+            padding: 5px 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>دسته‌بندی کالاها</h1>
+
+    <!-- فرم انتخاب گروه اصلی و فرعی و جستجو -->
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div>
+            {{ form.m_group.label }}: {{ form.m_group() }}
+        </div>
+        <div>
+            {{ form.s_group.label }}: {{ form.s_group() }}
+        </div>
+
+        <div>
+            <label>جستجوی کالا بر اساس نام یا کد:</label><br>
+            <input type="text" name="search_query" placeholder="مثلاً: 1001 یا شیر برقی"
+                value="{{ request.form.get('search_query', '') }}">
+        </div>
+
+        <button type="submit">اعمال فیلتر</button>
+    </form>
+
+    <!-- نمایش نتایج دسته‌بندی شده -->
+    {% for m_name, subgroups in data.items() %}
+    <div class="group">
+        <h2>{{ m_name }}</h2>
+        {% for s_name, products in subgroups.items() %}
+        <div class="subgroup">
+            <h3>{{ s_name }}</h3>
+            <ul>
+                {% for product in products %}
+                <li>
+                    {{ product.A_Name }} (کد: {{ product.A_Code }})
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+
+</html>

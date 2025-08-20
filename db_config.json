@@ -1,0 +1,11 @@
+{
+    "driver": "ODBC Driver 18 for SQL Server",
+    "server": "185.192.114.114",
+    "database": "Hamgam",
+    "username": "Hamgam",
+    "password": "&V9w8r29b",
+    "apikey": "6617327d*9c09*4c73*9bf9*62a23e",
+    "type_application": null,
+    "ip_address": "192.168.10.50",
+    "use_integrated_security": false
+}

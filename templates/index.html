@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>صفحه اصلی</title>
+</head>
+<body>
+    <h1>ورود اطلاعات</h1>
+    <form method="POST">
+        <input type="text" name="item" placeholder="نام مورد (هلو یا سپیدار)">
+        <button type="submit">ارسال</button>
+    </form>
+    <h2>لیست داده‌ها:</h2>
+    <ul>
+        {% for item in database %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

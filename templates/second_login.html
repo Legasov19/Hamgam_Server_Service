@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Second Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: auto;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            margin-top: -6px;
+            margin-bottom: 8px;
+        }
+
+        .info-box {
+            margin-top: 20px;
+            background-color: #f3f3f3;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .btn-row {
+            margin-top: 15px;
+        }
+
+        .flash-message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h2>Second Login</h2>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <label>{{ form.server.label }}</label>
+            {{ form.server(size=32) }}
+            {% for error in form.server.errors %}
+            <div class="error-message">{{ error }}</div>
+            {% endfor %}
+
+            <label>{{ form.database.label }}</label>
+            {{ form.database(size=32) }}
+            {% for error in form.database.errors %}
+            <div class="error-message">{{ error }}</div>
+            {% endfor %}
+
+            <label>{{ form.username.label }}</label>
+            {{ form.username(size=32) }}
+            {% for error in form.username.errors %}
+            <div class="error-message">{{ error }}</div>
+            {% endfor %}
+
+            <label>{{ form.password.label }}</label>
+            {{ form.password(size=32) }}
+            {% for error in form.password.errors %}
+            <div class="error-message">{{ error }}</div>
+            {% endfor %}
+
+            <div class="btn-row">
+                {{ form.save_information(class="btn") }}
+                {{ form.comeback(class="btn") }}
+            </div>
+        </form>
+
+        {% if server %}
+        <div class="info-box">
+            <h4>اطلاعات استخراج‌شده از دیتابیس:</h4>
+            <p><strong>Server:</strong> {{ server }}</p>
+            <p><strong>Database:</strong> {{ database }}</p>
+            <p><strong>Username:</strong> {{ db_username }}</p>
+            <p><strong>Password:</strong> {{ db_password }}</p>
+        </div>
+        {% endif %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>فرم دکمه و جستجو</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            direction: rtl;
+            text-align: center;
+            padding-top: 50px;
+            background-color: #f2f2f2;
+        }
+
+        form.button-form {
+            display: inline-block;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        button {
+            font-size: 18px;
+            padding: 10px 25px;
+            margin: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .search-form {
+            margin-bottom: 40px;
+        }
+
+        #search-box {
+            padding: 10px;
+            width: 300px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        #suggestions {
+            margin: 0 auto;
+            width: 300px;
+            text-align: right;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        #suggestions div {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- فرم سرچ -->
+    <form method="get" action="{{ url_for('holoo.search_keyword') }}" class="search-form">
+        <input type="text" name="keyword" id="search-box" placeholder="جستجوی کالا..." autocomplete="off" required>
+        <button type="submit">جستجو</button>
+        <div id="suggestions"></div>
+    </form>
+
+    <form method="get" action="{{ url_for('holoo.search_customer') }}" class="search-form" style="margin-top: 20px;">
+        <input type="text" name="cname" placeholder="جستجوی مشتری..." id="search-customer" required>
+        <button type="submit">جستجو مشتری</button>
+    </form>
+
+    <form method="post" action="{{ url_for('holoo.dastebandi_kala') }}">
+        {{ form.hidden_tag() }}
+    </form>
+
+
+
+
+    <!-- فرم دکمه‌ها -->
+    <form method="post" class="button-form">
+        {{ form.hidden_tag() }}
+        <div>
+            {{ form.submit1(class="btn") }}
+            {{ form.submit2(class="btn") }}
+            {{ form.submit3(class="btn") }}
+            {{ form.submit4(class="btn") }}
+        </div>
+    </form>
+
+    <!-- JavaScript برای autocomplete -->
+    <script>
+        const searchBox = document.getElementById('search-box');
+        const suggestionsBox = document.getElementById('suggestions');
+
+        searchBox.addEventListener('input', function () {
+            const keyword = this.value.trim();
+
+            if (keyword.length < 2) {
+                suggestionsBox.innerHTML = '';
+                return;
+            }
+
+            fetch(`/search_keyword?keyword=${encodeURIComponent(keyword)}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsBox.innerHTML = '';
+                    if (data.status === 'success') {
+                        const combined = [...data.article_results, ...data.customer_results];
+                        combined.forEach(item => {
+                            const div = document.createElement('div');
+                            div.textContent = item;
+                            div.addEventListener('click', () => {
+                                searchBox.value = item;
+                                suggestionsBox.innerHTML = '';
+                            });
+                            suggestionsBox.appendChild(div);
+                        });
+                    }
+                });
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!searchBox.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.innerHTML = '';
+            }
+        });
+    </script>
+
+</body>
+
+</html>

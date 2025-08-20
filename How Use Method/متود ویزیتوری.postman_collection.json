@@ -1,0 +1,1287 @@
+{
+	"info": {
+		"_postman_id": "4401c15d-2c76-4bf8-8f42-8ff96b7fea21",
+		"name": "متود ویزیتوری",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "42951966",
+		"_collection_link": "https://wq3333-2348.postman.co/workspace/wq-Workspace~69661b83-f302-4e17-832d-79224e8b6e97/collection/42951966-4401c15d-2c76-4bf8-8f42-8ff96b7fea21?source=collection_link"
+	},
+	"item": [
+		{
+			"name": "بروزرسانی کالا",
+			"item": [
+				{
+					"name": "CreateTrigger",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "GetUpdateArticle",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "گزارشات",
+			"item": [
+				{
+					"name": "getOrd",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"R_Date\": \"all\",\r\n  \"Visitor_Code\": \"00006\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/get_order_details",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_order_details"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_best_selling_articles",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"R_Date\": \"all\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/get_best_selling_articles",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_best_selling_articles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetReportAnbarak",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_code\": \"00012\",\r\n  \"items\": [\r\n    { \"article_code\": \"0201007\", \"quantity\": 12 },\r\n    { \"article_code\": \"0201007\", \"quantity\": 5 }\r\n  ]\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/miniwarehouse/00012",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"miniwarehouse",
+								"00012"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "خدمات مشتری",
+			"item": [
+				{
+					"name": "GetCustomer",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/send_customers_Visitory?page=1&page_size=5",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"send_customers_Visitory"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "5"
+								},
+								{
+									"key": "C_Mobile != '',C_Name != '',City_Code,Vaseteh = 0 شرایط ارسال شدن",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetCustomerProfile",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/send_customers_Visitory?C_Code=00000",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"send_customers_Visitory"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "C_Code",
+									"value": "00000"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Report_Customer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"Customer_Code\": \"00000\",\r\n  \"Visitor_Code\": \"00006\",\r\n  \"From_Date\": \"2025-01-06\",\r\n  \"To_Date\": \"2025-06-03\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/Report_Customer",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"Report_Customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CustomerVisitorLog",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/send_customers_Visitory?C_Code=00011&visitor_code=123",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"send_customers_Visitory"
+							],
+							"query": [
+								{
+									"key": "C_Code",
+									"value": "00011"
+								},
+								{
+									"key": "visitor_code",
+									"value": "123"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "registerCustomer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"phoneNumber\": \"0912665448\",\r\n  \"fullName\": \"علی\",\r\n  \"address\": \"تهران، خیابان آزادی، پلاک 123\",\r\n  \"nationalCode\": \"1234567890\",\r\n  \"region\": \"تهران\",\r\n  \"city\": \"تهران\",\r\n  \"visitor_code\": \"00006\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_customers_by_visitor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"V_Code\": \"00006\"\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/get_customers_by_visitor",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_customers_by_visitor"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "assign_customer_to_visitor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"C_Code\": \"00001\",\r\n  \"V_Code\": \"00006\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/assign_customer_to_visitor",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"assign_customer_to_visitor"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "unassign_customer_from_visitor",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "get_Citiy",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/get_customer_cities",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_customer_cities"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "لاگین ها",
+			"item": [
+				{
+					"name": "LoginVisitor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"mobile\": \"093185484\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/visitor_login",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"visitor_login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get-user-conn-Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"c1796350\",\r\n    \"password\": \"a48d8c31\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://visitorykadoor.ir/HolooPage/get-user-conn",
+							"protocol": "http",
+							"host": [
+								"visitorykadoor",
+								"ir"
+							],
+							"path": [
+								"HolooPage",
+								"get-user-conn"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "اشانتیون",
+			"item": [
+				{
+					"name": "assign_gift",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "gift_report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_code\": \"00006\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/gift_report",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"gift_report"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete_gift",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"A_Code\": \"12345\",\r\n  \"gift_code\": \"GFT001\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/delete_gift",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"delete_gift"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "معین",
+			"item": [
+				{
+					"name": "Moein",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "سرچ کالا و مشتری",
+			"item": [
+				{
+					"name": "SearchCustomer Copy",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/send_customers_Visitory?search=ا&visitor_code=00006",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"send_customers_Visitory"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "ا"
+								},
+								{
+									"key": "visitor_code",
+									"value": "00006"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/Search_Holoo_Articles?search=206&page=1&per_page=10",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"Search_Holoo_Articles"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "206"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search_Holoo_Articles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/Search_Holoo_Articles?search=شيلنگ پايين رادياتور &page=1&per_page=10",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"Search_Holoo_Articles"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "شيلنگ پايين رادياتور "
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "کالا/گروه کالا/ انبارک",
+			"item": [
+				{
+					"name": "Get_Holoo_Articles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://192.168.10.50:5000/HolooPage/Get_Holoo_Articles?page=1&per_page=6000&price_type=1&visitor_id=00007",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"50"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"Get_Holoo_Articles"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "6000"
+								},
+								{
+									"key": "price_type",
+									"value": "1"
+								},
+								{
+									"key": "visitor_id",
+									"value": "00007"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EnterFee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_id\": \"00006\",\r\n  \"price_type\": 1,\r\n  \"page\": 1,\r\n  \"per_page\": 10,\r\n  \"custom_prices\": {\r\n    \"0204675\": 9990000,\r\n    \"0201001\": 120000\r\n  }\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/Get_Holoo_Articles",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"Get_Holoo_Articles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ArticleByGroups",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"M_groupcode\": \"01\",\r\n  \"S_groupcode\": \"01\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/ArticleByGroups",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"ArticleByGroups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Anbarak",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_code\": \"00012\",\r\n  \"items\": [\r\n    { \"article_code\": \"0201007\", \"quantity\": 12 },\r\n    { \"article_code\": \"0201007\", \"quantity\": 5 }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/assign_to_miniwarehouse",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"assign_to_miniwarehouse"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteKalaAnbarak",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_code\": \"V001\",\r\n  \"article_codes\": [\"A1001\", \"A1002\", \"A1003\"]\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/delete_from_miniwarehouse",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"delete_from_miniwarehouse"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GroupsKala",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"Customer_Code\": \"00297\",\r\n  \"Visitor_Code\": \"V001\"\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/GroupsKala",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"GroupsKala"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update_article_price",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_id\": \"00006\",\r\n  \"article_code\": \"A123\",\r\n  \"custom_price\": 82000\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5000/HolooPage/update_article_price",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"update_article_price"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "miniwarehouse/report",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"visitor_code\": \"00012\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/miniwarehouse/report",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"miniwarehouse",
+								"report"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "پیش فاکتور /فاکتور",
+			"item": [
+				{
+					"name": "Save",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"OrderTitle\": {\r\n    \"FldMobile\": \"0901524637\",\r\n    \"FldTotalFaktor\": 250000,\r\n    \"FldTakhfifVizhe\": 10000,\r\n    \"FldTozihFaktor\": \"سفارش تستی مشتری\",\r\n    \"FldAddress\": \"تهران، خیابان آزادی\",\r\n    \"FldPayId\": \"1\",\r\n    \"FldC_Visitor\": \"00006\", \r\n    \"IsReturn\": false\r\n  },\r\n  \"OrderDetails\": [\r\n    {\r\n      \"A_Code\": \"0201008\",\r\n      \"FldC_Kala\": \"0201008\",\r\n      \"FldACode_C\": \"7007\",\r\n      \"FldN_Kala\": \"کالای تستی اول\",\r\n      \"FldTedad\": 100,\r\n      \"FldFee\": 80000,\r\n      \"FldN_Vahed\": \"عدد\",\r\n      \"FldTozihat\": \"بدون توضیح\",\r\n      \"FldTedadDarKarton\": 1,\r\n      \"FldTedadKol\": 1\r\n    }\r\n   \r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.50:5000/HolooPage/save",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"50"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"save"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MarjoieiiSave",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"IsReturn\": true,\r\n  \"OrderTitle\": {\r\n    \"FldMobile\": \"09121234567\",\r\n    \"FldTotalFaktor\": 100000,\r\n    \"FldTakhfifVizhe\": 5000,\r\n    \"FldTozihFaktor\": \"مرجوعی بابت کالاهای برگشتی\",\r\n    \"FldAddress\": \"تهران، خیابان آزادی\",\r\n    \"FldPayId\": \"123\",\r\n    \"FldC_Visitor\": \"V001\"\r\n  },\r\n  \"OrderDetails\": [\r\n    {\r\n      \"FldC_Kala\": \"0204675\",\r\n      \"FldACode_C\": \"8383\",\r\n      \"FldN_Kala\": \"کالای تستی\",\r\n      \"FldTedad\": 2,\r\n      \"FldFee\": 45000,\r\n      \"FldN_Vahed\": \"عدد\",\r\n      \"FldTozihat\": \"بسته‌بندی باز شده بود\",\r\n      \"FldTedadDarKarton\": 1,\r\n      \"FldTedadKol\": 2\r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/save",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"save"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"OrderTitle\": {\r\n        \"FldMobile\": \"09123456789\",\r\n        \"IsReturn\": false,\r\n        \"FldTotalFaktor\": 1250000.0,\r\n        \"FldPayId\": \"1\",\r\n        \"FldTozihFaktor\": \"خرید آنلاین از سایت\"\r\n    },\r\n    \"OrderDetails\": [\r\n        {\r\n            \"FldC_Kala\": \"010101\",\r\n            \"FldTedad\": 2,\r\n            \"FldFee\": 500000.0,\r\n            \"FldN_Vahed\": \"عدد\",\r\n            \"FldACode_C\": \"ARTC1\",\r\n            \"FldN_Kala\": \"لپ تاپ ایسوس\",\r\n            \"FldTozihat\": \"رنگ مشکی\"\r\n        },\r\n        {\r\n            \"FldC_Kala\": \"010102\",\r\n            \"FldTedad\": 1,\r\n            \"FldFee\": 250000.0,\r\n            \"FldN_Vahed\": \"بسته\",\r\n            \"FldACode_C\": \"ARTC2\",\r\n            \"FldN_Kala\": \"کیبورد بی سیم\",\r\n            \"FldTozihat\": \"مدل لاجیتک\"\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.50:5000/save",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"50"
+							],
+							"port": "5000",
+							"path": [
+								"save"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "لوکیشن",
+			"item": [
+				{
+					"name": "location",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": []
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/location",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"location"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "customer-location",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"CustomerCode\": \"123456\",\r\n  \"VisitorCode\": \"00006\",\r\n  \"Latitude\": 35.6892,\r\n  \"Longitude\": 51.3890\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/customer-location",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"customer-location"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ویزیتور",
+			"item": [
+				{
+					"name": "update_visitor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"FldC_Visitor\": \"01695\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.2.48:5000/HolooPage/update_visitor",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"2",
+								"48"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"update_visitor"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_visitors",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"list\": true\r\n}\r\n"
+						},
+						"url": {
+							"raw": "http://192.168.2.48:5000/HolooPage/send_visitors",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"2",
+								"48"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"send_visitors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "عکس کالاAi",
+			"item": [
+				{
+					"name": "Ai",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/get_image_by_code?code=0801002",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_image_by_code"
+							],
+							"query": [
+								{
+									"key": "code",
+									"value": "0801002"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_images_by_codes",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"item_codes\": [ \"0204675\"],\r\n  \"item_names\": {\r\n    \"0204675\": \"ابمیوه هلو\"\r\n  },\r\n  \"save_codes\": [\"0204675\"],\r\n  \"force_refresh\": false\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://192.168.10.107:5000/HolooPage/get_images_by_codes",
+							"protocol": "http",
+							"host": [
+								"192",
+								"168",
+								"10",
+								"107"
+							],
+							"port": "5000",
+							"path": [
+								"HolooPage",
+								"get_images_by_codes"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

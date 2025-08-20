@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>نتایج جستجو</title>
+    <style>
+        body {
+            font-family: Tahoma;
+            direction: rtl;
+            background: #f9f9f9;
+            padding: 20px;
+        }
+
+        .group {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background: #fff;
+        }
+
+        .group h2 {
+            color: #2e7d32;
+        }
+
+        .subgroup {
+            margin-right: 20px;
+            margin-top: 15px;
+        }
+
+        .subgroup h3 {
+            color: #1565c0;
+        }
+
+        ul {
+            list-style-type: square;
+            padding-right: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>نتایج جستجو</h1>
+
+    {% for m_name, subgroups in data.items() %}
+    <div class="group">
+        <h2>{{ m_name }}</h2>
+        {% for s_name, products in subgroups.items() %}
+        <div class="subgroup">
+            <h3>{{ s_name }}</h3>
+            <ul>
+                {% for product in products %}
+                <li>{{ product.A_Name }} (کد: {{ product.A_Code }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+
+</html>

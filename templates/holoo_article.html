@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <title>رکورد ها</title>
+</head>
+
+<body>
+    <h1>رکورد ها</h1>
+    <table border="1">
+        <tr>
+            {% for col in articles[0].keys() %}
+            <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+        {% for article in articles %}
+        <tr>
+            {% for value in article.values() %}
+            <td>{{ value }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div style="margin-top: 20px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('holoo.holoo_article', page=page-1) }}">صفحه قبلی</a>
+        {% endif %}
+        <span>صفحه {{ page }} از {{ total_pages }}</span>
+        {% if page < total_pages %} <a href="{{ url_for('holoo.holoo_article', page=page+1) }}">صفحه بعدی</a>
+            {% endif %}
+    </div>
+</body>
+
+</html>

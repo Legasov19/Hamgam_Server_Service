@@ -1,0 +1,4 @@
+version: 1
+services:
+  - name: flask-hamgam
+    type: docker # <--- نوع سرویس از python به docker تغییر کرد

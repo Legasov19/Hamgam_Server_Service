@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <title>اطلاعات محصول</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+
+    <!-- آیکون ستاره‌ها -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin-top: 40px;
+        }
+
+        .star-rating {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #ffc107;
+        }
+
+        .star-rating:hover {
+            color: #e0a800;
+        }
+
+        .star-rating.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1 class="text-center mb-4">جستجوی محصول</h1>
+
+        <!-- پیام‌های فلش -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="بستن"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- فرم جستجو -->
+        <form method="POST" class="input-group mb-4 justify-content-center">
+            <input type="text" name="a_code" id="a_code" class="form-control w-50"
+                placeholder="کد محصول را وارد کنید..." required>
+            <button type="submit" class="btn btn-primary">جستجو</button>
+        </form>
+
+        {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+        {% endif %}
+
+        {% if product %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title mb-4 text-center">{{ product['A_Name'] }}</h4>
+
+                <table class="table table-bordered table-striped text-center">
+                    <thead>
+                        <tr>
+                            <th>کد</th>
+                            <th>قیمت خرید</th>
+                            <th>قیمت فروش</th>
+                            <th>موجودی</th>
+                            <th>حداقل</th>
+                            <th>حداکثر</th>
+                            <th>امتیاز</th>
+                            <th>افزودن امتیاز</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ product['A_Code'] }}</td>
+                            <td>{{ product['Buy_Price'] }}</td>
+                            <td>{{ product['Sel_Price'] }}</td>
+                            <td>{{ product['Exist'] }}</td>
+                            <td>{{ product['A_Min'] }}</td>
+                            <td>{{ product['A_Max'] }}</td>
+                            <td>⭐ {{ product['Rate'] or 0 }}</td>
+                            <td>
+                                {% if not already_rated %}
+                                <form method="POST"
+                                    action="{{ url_for('holoo.increase_rate_individual', a_code=product['A_Code']) }}"
+                                    id="rate-form">
+                                    <button type="submit" class="btn btn-outline-warning btn-sm">
+                                        <i class="bi bi-star-fill"></i> امتیاز بده
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">شما قبلاً امتیاز داده‌اید</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- فرم افزودن درخواست -->
+                <form method="POST" class="d-flex align-items-center justify-content-center mt-3">
+                    <input type="hidden" name="a_code" value="{{ product['A_Code'] }}">
+                    <input type="number" name="requested_quantity" class="form-control me-2 w-25" min="1"
+                        placeholder="تعداد..." required>
+                    <button type="submit" class="btn btn-success">افزودن درخواست</button>
+                </form>
+
+                <!-- فرم وارد کردن اشانتیون -->
+                <form method="POST" class="d-flex align-items-center justify-content-center mt-3">
+                    <input type="hidden" name="a_code" value="{{ product['A_Code'] }}">
+                    <input type="text" name="eshantion_name" class="form-control me-2 w-50"
+                        placeholder="نام محصول اشانتیون را وارد کنید..." required>
+                    <button type="submit" class="btn btn-info">افزودن اشانتیون</button>
+                </form>
+
+                <!-- نمایش بازدید -->
+                <p class="text-center mt-4">
+                    این محصول تا حالا <strong>{{ product['Seen'] or 0 }}</strong> بار دیده شده است.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
