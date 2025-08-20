@@ -1,5 +1,9 @@
 import json
 import pyodbc
+from flask import (
+    Flask,
+    g,
+)
 CONFIG_FILE = 'db_config.json'
 
 def save_db_config(config: dict):
@@ -15,37 +19,58 @@ def load_db_config() -> dict:
         return None
 
 
+
+
 def get_article_connection():
-    """اتصال به دیتابیس مقاله‌ها از فایل تنظیمات"""  
-    db_info = load_db_config()
+    db_info = getattr(g, "db_config", None) or load_db_config()
     if not db_info:
         raise Exception("تنظیمات دیتابیس ذخیره نشده است!")
-    conn = pyodbc.connect(
-        f"DRIVER={db_info['driver']};"
-        f"SERVER={db_info['server']};"
-        f"DATABASE={db_info['database']};"
-        f"UID={db_info['username']};"
-        f"PWD={db_info['password']};"
-        f"TrustServerCertificate=yes;"
+
+    driver = db_info.get("driver")
+    server = db_info.get("server")
+    database = db_info.get("database")
+    username = db_info.get("username")
+    password = db_info.get("password")
+    trust_cert = db_info.get("trust_server_certificate", "yes")
+
+    encrypt_option = "Encrypt=yes;" if "ODBC Driver 18" in driver else ""
+
+    conn_str = (
+        f"DRIVER={{{driver}}};"
+        f"SERVER={server};"
+        f"DATABASE={database};"
+        f"UID={username};"
+        f"PWD={password};"
+        f"{encrypt_option}"
+        f"TrustServerCertificate={trust_cert};"
     )
-    return conn
+
+    return pyodbc.connect(conn_str)
+
+
+
+
+
+
 def get_main_db_connection1():
-    """اتصال به دیتابیس اصلی پروژه"""
     return pyodbc.connect(
-        'DRIVER={ODBC Driver 18 for SQL Server};'
-        'SERVER=185.192.114.114;'
-        'DATABASE=VisitoryMainDb;'
-        'UID=Visitory_maindb_2;'
-        'PWD=467y?u3kX;'
-        'TrustServerCertificate=yes;'
+        "DRIVER={ODBC Driver 18 for SQL Server};"
+        "SERVER=185.192.114.114;"
+        "DATABASE=VisitoryMainDb;"
+        "UID=Visitory_maindb_2;"
+        "PWD=467y?u3kX;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=yes;"
     )
+
+
 def get_second_db_connection1():
-    """اتصال به دیتابیس دوم پروژه"""
     return pyodbc.connect(
-        'DRIVER={ODBC Driver 18 for SQL Server};'
-        'SERVER=185.192.114.114;'
-        'DATABASE=webcom_main;'
-        'UID=webcom_main1;'
-        'PWD=f3C3!65gr;'
-        'TrustServerCertificate=yes;'
+        "DRIVER={ODBC Driver 18 for SQL Server};"
+        "SERVER=185.192.114.114;"
+        "DATABASE=webcom_main;"
+        "UID=webcom_main1;"
+        "PWD=f3C3!65gr;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=yes;"
     )

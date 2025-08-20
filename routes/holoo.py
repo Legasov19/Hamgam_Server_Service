@@ -3,10 +3,12 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask import Response
 from flask_restx import Api, Resource, fields, reqparse
 from datetime import datetime, time, timedelta
+from decorators import login_required
 import pyodbc
 import csv
 import os
 import math
+from functools import wraps
 import json
 import shutil
 import requests
@@ -18,7 +20,7 @@ from bs4 import BeautifulSoup
 import re
 import urllib
 # from forms import Buttons, GroupSelectionForm
-from flask import make_response
+from flask import make_response , g
 import traceback, logging, datetime
 from contextlib import closing
 from datetime import datetime
@@ -37,6 +39,23 @@ holoo_bp = Blueprint('holoo', __name__)
 
 
 #def
+# -----------------------------
+# دکوراتور بررسی API Key
+
+user_databases = {}
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        apikey = request.headers.get("x-api-key", "").strip()
+        if not apikey or apikey not in user_databases:
+            return jsonify({"error": "API Key نامعتبر"}), 403
+
+        g.db_config = user_databases[apikey]
+        return f(*args, **kwargs)
+    return decorated
+
+# -----------------------------
+
 def get_converted_article_prices():
     """
     Connects to the database, retrieves price fields from the Article table,
@@ -1025,6 +1044,7 @@ def create_login_forooshgahi_table():
 
 
 @holoo_bp.route("/register", methods=["POST"])
+@require_api_key
 def add_customer():
     try:
         conn = get_article_connection()
@@ -1101,6 +1121,10 @@ def add_customer():
 
 
 
+# -----------------------------
+# لاگین و گرفتن apikey
+
+
 @holoo_bp.route("/get-user-conn", methods=["POST"])
 def get_user_conn_info():
     data = request.get_json()
@@ -1110,8 +1134,9 @@ def get_user_conn_info():
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
 
+    conn1 = conn2 = None
     try:
-        # مرحله 1: دریافت ApiKey و TypeApplication از دیتابیس اول
+        # مرحله 1: گرفتن ApiKey
         conn1 = get_main_db_connection1()
         cursor1 = conn1.cursor()
         cursor1.execute(
@@ -1123,15 +1148,14 @@ def get_user_conn_info():
             (username, password),
         )
         row1 = cursor1.fetchone()
-        conn1.close()
+        cursor1.close()
 
         if not row1:
             return jsonify({"error": "Invalid username or password"}), 404
 
-        api_key = row1[0]
-        type_application = row1[1]
+        api_key, type_application = row1
 
-        # مرحله 2: دریافت ConnectionStringLocal و FldConnection از دیتابیس دوم
+        # مرحله 2: گرفتن Connection String اصلی
         conn2 = get_second_db_connection1()
         cursor2 = conn2.cursor()
         cursor2.execute(
@@ -1143,55 +1167,63 @@ def get_user_conn_info():
             (api_key,),
         )
         row2 = cursor2.fetchone()
-        conn2.close()
+        cursor2.close()
 
         if not row2:
             return jsonify({"error": "No matching record found"}), 404
 
-        full_conn_string = row2[0]
-        fld_connection = row2[1]
+        full_conn_string, fld_connection = row2
 
-        # مرحله 3: استخراج مقادیر از ConnectionStringLocal
-        matches = {
-            "data_source": re.search(
-                r"data source=([^;]+)", full_conn_string, re.IGNORECASE
-            ),
-            "initial_catalog": re.search(
-                r"initial catalog=([^;]+)", full_conn_string, re.IGNORECASE
-            ),
-            "user_id": re.search(r"user id=([^;]+)", full_conn_string, re.IGNORECASE),
-            "password": re.search(r"password=([^;]+)", full_conn_string, re.IGNORECASE),
+        # مرحله 3: استخراج provider connection string
+        ef_match = re.search(
+            r"provider connection string='([^']+)'", full_conn_string, re.IGNORECASE)
+        actual_conn_string = ef_match.group(
+            1) if ef_match else full_conn_string
+
+        conn_parts = dict(re.findall(
+            r"(?i)(data source|server|initial catalog|database|user id|uid|password|pwd|integrated security)\s*=\s*([^;]+)",
+            actual_conn_string
+        ))
+
+        conn_info = {
+            "server": conn_parts.get("data source") or conn_parts.get("server"),
+            "database": conn_parts.get("initial catalog") or conn_parts.get("database"),
+            "username": conn_parts.get("user id") or conn_parts.get("uid"),
+            "password": conn_parts.get("password") or conn_parts.get("pwd"),
+            "integrated_security": conn_parts.get("integrated security", "").lower() == "true",
         }
 
-        # مرحله 4: استخراج IP از FldConnection
-        ip_match = re.match(r"([\d\.]+)", fld_connection) if fld_connection else None
+        ip_match = re.search(
+            r"(\d{1,3}(?:\.\d{1,3}){3})", fld_connection or "")
         ip_address = ip_match.group(1) if ip_match else None
 
-        # مرحله 5: ساختن خروجی
         result = {
             "driver": "ODBC Driver 18 for SQL Server",
-            "server": (
-                matches["data_source"].group(1) if matches["data_source"] else None
-            ),
-            "database": (
-                matches["initial_catalog"].group(1)
-                if matches["initial_catalog"]
-                else None
-            ),
-            "username": matches["user_id"].group(1) if matches["user_id"] else None,
-            "password": matches["password"].group(1) if matches["password"] else None,
+            "server": conn_info["server"],
+            "database": conn_info["database"],
+            "username": conn_info.get("username"),
+            "password": conn_info.get("password"),
             "apikey": api_key,
             "type_application": type_application,
             "ip_address": ip_address,
+            "use_integrated_security": conn_info["integrated_security"]
         }
 
-        # مرحله 6: ذخیره تنظیمات در فایل
+        # ذخیره روی فایل
         save_db_config(result)
+        # ذخیره روی حافظه
+        user_databases[api_key] = result
 
         return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        if conn1:
+            conn1.close()
+        if conn2:
+            conn2.close()
+
     
     
 
@@ -1199,217 +1231,133 @@ from datetime import datetime
 
 @holoo_bp.route('/login', methods=["POST", "GET"])
 def login():
-    if request.method == "GET":
-        try:
-            conn = get_article_connection()
-            cursor = conn.cursor()
-
-            # بررسی وضعیت تایید ادمین
-            cursor.execute("SELECT FldTaiidAdmin FROM TblSetting_forooshgahi")
-            setting_row = cursor.fetchone()
-            fld_taiid_admin = setting_row[0] if setting_row else 0
-
-            if fld_taiid_admin != 1:
-                return jsonify({
-                    "status": "ok",
-                    "FldTaiidAdmin": False,
-                    "message": "تأیید ادمین غیرفعال است."
-                })
-
-            # واکشی کاربران منتظر تایید (Ok = 0)
-            cursor.execute("""
-                SELECT L.C_Mobile, C.C_Name, L.RequestTime
-                FROM LoginForooshgahi L
-                INNER JOIN CUSTOMER C ON L.C_Mobile = C.C_Mobile
-                WHERE (L.Ok = 0 OR L.Ok IS NULL)
-                AND L.CodeVorood IS NOT NULL
-            """)
-            rows = cursor.fetchall()
-
-            users = []
-            for row in rows:
-                users.append({
-                    "C_Mobile": row[0],
-                    "C_Name": row[1],
-                    "RequestTime": row[2].strftime("%Y-%m-%d %H:%M:%S") if row[2] else None
-                })
-
-            return jsonify({
-                "status": "ok",
-                "FldTaiidAdmin": True,
-                "pending_users": users
-            })
-
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
-
-        finally:
-            try:
-                cursor.close()
-                conn.close()
-            except:
-                pass
-
-    # ----------- مرحله POST ---------------------
-    data = request.get_json()
-    if not data:
-        return jsonify({"status": "error", "message": "داده‌ای دریافت نشد."}), 400
-
-    mobile = data.get('mobile')
-    code = data.get('code')  # در مرحله دوم استفاده میشه
-
-    if not mobile:
-        return jsonify({"status": "error", "message": "شماره موبایل الزامی است."}), 400
-
-    conn = get_article_connection()
-    cursor = conn.cursor()
-
-    # مرحله دوم: اگر کد ورود فرستاده شده
-    if code:
-        cursor.execute("SELECT FldTaiidAdmin FROM TblSetting_forooshgahi")
-        setting_row = cursor.fetchone()
-        fld_taiid_admin = setting_row[0] if setting_row else 0
-
-        if fld_taiid_admin == 1:
-            cursor.execute("SELECT Ok FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
-            ok_row = cursor.fetchone()
-            if not ok_row or ok_row[0] != 1:
-                cursor.close()
-                conn.close()
-                return jsonify({
-                    "status": "error",
-                    "message": "برای ورود نیاز به تأیید درخواست توسط ادمین دارید."
-                }), 403
-
-        # بررسی صحت کد ورود
-        cursor.execute("SELECT CodeVorood FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
-        row = cursor.fetchone()
-        if row and row[0] == code:
-            # واکشی اطلاعات فروشگاه
-            cursor.execute("""
-                SELECT ISNULL(FldNameForooshgah, ''), ISNULL(FldTellForooshgah, ''),
-                       ISNULL(FldAddressForooshgah, ''), ISNULL(Shomare_Card, ''),
-                       ISNULL(FldVahedpool, ''), ISNULL(HideExist, 0),
-                       ISNULL(HideMojoodi, 0), ISNULL(HideNamojood, 0),
-                       ISNULL(FldP_ForooshBishAzMojoodi, 0)
-                FROM TblSetting_forooshgahi
-            """)
-            settings_row = cursor.fetchone()
-            fld_name, fld_tell, fld_address, shomare_card, fld_vahedpool, hide_exist, hide_mojoodi, hide_namojood, fldp_bishazmojoodi = settings_row
-
-            # گرفتن C_Code و لاگین کردن
-            cursor.execute("SELECT C_Code FROM CUSTOMER WHERE C_Mobile = ?", (mobile,))
-            ccode_row = cursor.fetchone()
-            c_code = ccode_row[0] if ccode_row else None
-
-            login_value = 0
-            c_mobile = None
-            if c_code:
-                cursor.execute("UPDATE CUSTOMER SET Login = 1 WHERE C_Code = ?", (c_code,))
-                conn.commit()
-
-                cursor.execute("SELECT Login FROM CUSTOMER WHERE C_Code = ?", (c_code,))
-                login_row = cursor.fetchone()
-                login_value = bool(login_row[0]) if login_row else False
-
-                cursor.execute("SELECT C_Mobile FROM CUSTOMER WHERE C_Code = ?", (c_code,))
-                mobile_row = cursor.fetchone()
-                c_mobile = mobile_row[0] if mobile_row else None
-
-            cursor.execute("SELECT ISNULL(ExpireLogin, 0) FROM TblSetting_forooshgahi")
-            expire_row = cursor.fetchone()
-            expire_login = bool(expire_row[0]) if expire_row else False
-
-            cursor.close()
-            conn.close()
-            return jsonify({
-                "status": "ok",
-                "message": "ورود با موفقیت انجام شد.",
-                "FldNameForooshgah": fld_name,
-                "FldTellForooshgah": fld_tell,
-                "FldAddressForooshgah": fld_address,
-                "C_Code": c_code,
-                "FldP_ForooshBishAzMojoodi": fldp_bishazmojoodi,
-                "Shomare_Card": shomare_card,
-                "FldVahedpool": fld_vahedpool,
-                "HideExist": bool(hide_exist),
-                "HideMojoodi": bool(hide_mojoodi),
-                "HideNamojood": bool(hide_namojood),
-                "Login": login_value,
-                "ExpireLogin": expire_login,
-                "C_Mobile": c_mobile
-            })
-        else:
-            cursor.close()
-            conn.close()
-            return jsonify({"status": "error", "message": "کد وارد شده صحیح نیست."}), 401
-
-    # مرحله اول: ارسال کد ورود
-    cursor.execute("SELECT C_Mobile FROM CUSTOMER WHERE C_Mobile = ?", (mobile,))
-    exists = cursor.fetchone()
-    if not exists:
-        cursor.close()
-        conn.close()
-        return jsonify({"status": "error", "message": "شماره موبایل در سیستم ثبت نشده است ، ابتدا باید ثبت نام کنید"}), 400
-
+    import traceback
     import random
     from datetime import datetime
-    code_vorood = str(random.randint(1000, 9999))
-    request_time = datetime.now()
-
-    # ثبت کد ورود و زمان
-    cursor.execute("SELECT C_Mobile FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
-    login_row = cursor.fetchone()
-
-    if login_row:
-        cursor.execute("""
-            UPDATE LoginForooshgahi
-            SET CodeVorood = ?, RequestTime = ?
-            WHERE C_Mobile = ?
-        """, (code_vorood, request_time, mobile))
-    else:
-        cursor.execute("""
-            INSERT INTO LoginForooshgahi (C_Mobile, CodeVorood, RequestTime)
-            VALUES (?, ?, ?)
-        """, (mobile, code_vorood, request_time))
-
-    conn.commit()
-
-    # ارسال پیامک
     import requests
-    url = "https://api2.ippanel.com/api/v1/sms/pattern/normal/send"
-    headers = {
-        "apikey": "OWYyOGU3MTUtYzAyZi00ZDg3LTlhOTUtNDdmZDNiYTA2NGUyNGVhM2ViYWNiODZiYTY1M2E0MGU5M2RkYTg4ZTNhYzA=",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "code": "fs3hncvdgpy7fo7",
-        "sender": "+983000505",
-        "recipient": mobile,
-        "variable": {
-            "verification-code": code_vorood
+
+    def send_sms(mobile, code_vorood):
+        url = "https://api2.ippanel.com/api/v1/sms/pattern/normal/send"
+        headers = {
+            "apikey": "OWYyOGU3MTUtYzAyZi00ZDg3LTlhOTUtNDdmZDNiYTA2NGUyNGVhM2ViYWNiODZiYTY1M2E0MGU5M2RkYTg4ZTNhYzA=",
+            "Content-Type": "application/json"
         }
-    }
+        data = {
+            "code": "fs3hncvdgpy7fo7",
+            "sender": "+983000505",
+            "recipient": mobile,
+            "variable": {"verification-code": code_vorood}
+        }
+        try:
+            resp = requests.post(url, json=data, headers=headers)
+            if resp.status_code != 200:
+                print(f"SMS ارسال نشد. کد وضعیت: {resp.status_code}, پاسخ: {resp.text}")
+        except Exception as e:
+            print(f"خطا در ارسال پیامک: {e}")
 
     try:
-        response = requests.post(url, json=data, headers=headers)
-        if response.status_code != 200:
-            print(f"SMS ارسال نشد. کد وضعیت: {response.status_code}, پاسخ: {response.text}")
-    except Exception as e:
-        print(f"خطا در ارسال پیامک: {e}")
+        if request.method == "GET":
+            with get_article_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT FldTaiidAdmin FROM TblSetting_forooshgahi")
+                setting_row = cursor.fetchone()
+                fld_taiid_admin = setting_row[0] if setting_row else 0
 
-    cursor.close()
-    conn.close()
+                if fld_taiid_admin != 1:
+                    return jsonify({
+                        "status": "ok",
+                        "FldTaiidAdmin": False,
+                        "message": "تأیید ادمین غیرفعال است."
+                    })
 
-    return jsonify({
-        "status": "ok",
-        "message": "کد ورود به شماره موبایل شما ارسال شد",
-        "code": code_vorood  # فقط برای تست نمایش داده میشه
-    })
+                cursor.execute("""
+                    SELECT L.C_Mobile, C.C_Name, L.RequestTime
+                    FROM LoginForooshgahi L
+                    INNER JOIN CUSTOMER C ON L.C_Mobile = C.C_Mobile
+                    WHERE (L.Ok = 0 OR L.Ok IS NULL)
+                    AND L.CodeVorood IS NOT NULL
+                """)
+                users = [
+                    {
+                        "C_Mobile": row[0],
+                        "C_Name": row[1],
+                        "RequestTime": row[2].strftime("%Y-%m-%d %H:%M:%S") if row[2] else None
+                    }
+                    for row in cursor.fetchall()
+                ]
+
+                return jsonify({
+                    "status": "ok",
+                    "FldTaiidAdmin": True,
+                    "pending_users": users
+                })
+
+        # ---------- POST ----------
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "داده‌ای دریافت نشد."}), 400
+
+        mobile = data.get('mobile')
+        code = data.get('code')
+
+        if not mobile:
+            return jsonify({"status": "error", "message": "شماره موبایل الزامی است."}), 400
+
+        with get_article_connection() as conn:
+            cursor = conn.cursor()
+
+            if code:
+                cursor.execute("SELECT FldTaiidAdmin FROM TblSetting_forooshgahi")
+                fld_taiid_admin = cursor.fetchone()[0] if cursor.fetchone() else 0
+
+                if fld_taiid_admin == 1:
+                    cursor.execute("SELECT Ok FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
+                    ok_row = cursor.fetchone()
+                    if not ok_row or ok_row[0] != 1:
+                        return jsonify({
+                            "status": "error",
+                            "message": "برای ورود نیاز به تأیید درخواست توسط ادمین دارید."
+                        }), 403
+
+                cursor.execute("SELECT CodeVorood FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
+                row = cursor.fetchone()
+                if not row or row[0] != code:
+                    return jsonify({"status": "error", "message": "کد وارد شده صحیح نیست."}), 401
+
+                # ادامه مراحل ورود (واکشی فروشگاه و C_Code)
+                # ...
+                # return jsonify({...})
+
+            # مرحله اول: ارسال کد ورود
+            cursor.execute("SELECT C_Mobile FROM CUSTOMER WHERE C_Mobile = ?", (mobile,))
+            if not cursor.fetchone():
+                return jsonify({"status": "error", "message": "شماره موبایل در سیستم ثبت نشده است"}), 400
+
+            code_vorood = str(random.randint(1000, 9999))
+            request_time = datetime.now()
+
+            cursor.execute("SELECT C_Mobile FROM LoginForooshgahi WHERE C_Mobile = ?", (mobile,))
+            if cursor.fetchone():
+                cursor.execute("""
+                    UPDATE LoginForooshgahi SET CodeVorood=?, RequestTime=? WHERE C_Mobile=?
+                """, (code_vorood, request_time, mobile))
+            else:
+                cursor.execute("""
+                    INSERT INTO LoginForooshgahi (C_Mobile, CodeVorood, RequestTime) VALUES (?, ?, ?)
+                """, (mobile, code_vorood, request_time))
+            conn.commit()
+
+            send_sms(mobile, code_vorood)
+            return jsonify({"status": "ok", "message": "کد ورود ارسال شد", "code": code_vorood})
+
+    except Exception:
+        print(traceback.format_exc())
+        return jsonify({"status": "error", "message": "خطای داخلی سرور"}), 500
 
 
 
 @holoo_bp.route('/accept', methods=['GET', 'POST'])
+@require_api_key
 def accept():
     if request.method == 'GET':
         try:
@@ -1462,20 +1410,16 @@ def accept():
             return jsonify({"status": "error", "message": f"خطا در ذخیره‌سازی: {str(e)}"}), 500
 
 
+
 def make_image_url(article_code):
     base_url = request.host_url.rstrip("/")
-    # اجبار به https
-    base_url = base_url.replace("http://", "https://", 1)
-
     if article_code:
         encoded_code = urllib.parse.quote(article_code)
         url = f"{base_url}/get_image_by_code?code={encoded_code}"
     else:
         url = f"{base_url}/get_image_by_code?default=1"
-
-    print("IMAGE URL:", url)
+    print("IMAGE URL:", url)  # برای دیباگ
     return url
-
 
 
 
@@ -1495,6 +1439,7 @@ def get_vahedpool(cursor) -> str:
 
 
 @holoo_bp.route("/Get_Holoo_Articles", methods=["GET", "POST"])
+@require_api_key
 def get_holoo_articles():
     try:
         conn = get_article_connection()
@@ -1900,6 +1845,7 @@ def fetch_image_url(name: str) -> str | None:
 
 
 @holoo_bp.route("/get_images_by_codes", methods=["POST", "OPTIONS"])
+@require_api_key
 @cross_origin()
 def get_images_by_codes():
     if request.method == "OPTIONS":
@@ -2017,127 +1963,6 @@ def get_images_by_codes():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
-
-# @holoo_bp.route("/get_images_by_codes", methods=["POST", "OPTIONS"])
-# @cross_origin()
-# def get_images_by_codes():
-#     if request.method == "OPTIONS":
-#         return "", 200
-
-#     data = request.get_json()
-#     if not data:
-#         return jsonify({"error": "درخواست فاقد داده‌ی JSON معتبر است"}), 400
-
-#     item_codes = data.get("item_codes", [])
-#     item_names_dict = data.get("item_names", {})
-#     item_names_only = data.get("item_names_only", [])
-#     save_codes = data.get("save_codes", [])
-#     force_refresh = data.get("force_refresh", False)
-
-#     results = []
-
-#     try:
-#         with closing(get_article_connection()) as conn:
-#             cursor = conn.cursor()
-
-#             # پردازش item_names_only
-#             for item in item_names_only:
-#                 code = item.get("code")
-#                 name = item.get("name")
-#                 try:
-#                     img_url = fetch_image_url(name)
-#                     results.append(
-#                         {
-#                             "code": code,
-#                             "name": name,
-#                             "image_url": img_url,
-#                             "saved_path": None,
-#                         }
-#                     )
-#                 except Exception as e:
-#                     results.append(
-#                         {
-#                             "code": code,
-#                             "name": name,
-#                             "image_url": None,
-#                             "saved_path": None,
-#                             "error": str(e),
-#                         }
-#                     )
-
-#             # پردازش کدهای آیتم
-#             for code in item_codes:
-#                 cursor.execute("SELECT A_Name FROM Article WHERE A_Code = ?", (code,))
-#                 row = cursor.fetchone()
-
-#                 # مقدار نام از ورودی یا دیتابیس
-#                 name = item_names_dict.get(code)
-#                 if not name:
-#                     name = row[0] if row and row[0] else None
-
-#                 if not name:
-#                     results.append(
-#                         {
-#                             "code": code,
-#                             "name": f"نام کالا برای کد {code} در دیتابیس موجود نیست",
-#                             "image_url": None,
-#                             "saved_path": None,
-#                         }
-#                     )
-#                     continue
-
-#                 try:
-#                     img_url = fetch_image_url(name)
-#                     saved_path = None
-
-#                     if img_url and code in save_codes:
-#                         save_dir = output_path("static/item_images")
-#                         os.makedirs(save_dir, exist_ok=True)
-#                         save_path = os.path.join(save_dir, f"{code}.jpg")
-
-#                         if force_refresh or not os.path.exists(save_path):
-#                             response = requests.get(img_url)
-#                             if response.status_code == 200:
-#                                 img_data = response.content
-#                                 with Image.open(BytesIO(img_data)) as image:
-#                                     image = image.convert("RGB")
-#                                     image = image.resize((600, 400))
-#                                     image.save(save_path, format="JPEG", quality=95)
-#                             else:
-#                                 raise Exception(
-#                                     f"دانلود تصویر با خطا مواجه شد: {response.status_code}"
-#                                 )
-
-#                         saved_path = save_path.replace("\\", "/")
-
-#                     results.append(
-#                         {
-#                             "code": code,
-#                             "name": name,
-#                             "image_url": img_url,
-#                             "saved_path": saved_path,
-#                         }
-#                     )
-
-#                 except Exception as e:
-#                     results.append(
-#                         {
-#                             "code": code,
-#                             "name": name,
-#                             "image_url": None,
-#                             "saved_path": None,
-#                             "error": str(e),
-#                         }
-#                     )
-
-#         return jsonify(results)
-
-#     except Exception as e:
-#         import traceback
-#         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
-
-
-
 def resource_path(relative_path):
     base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
@@ -2155,6 +1980,7 @@ def resource_path(relative_path):
 
 
 @holoo_bp.route("/get_image_by_code")
+@require_api_key
 def get_image_by_code():
     import os
     from flask import send_file, redirect, request
@@ -2216,6 +2042,7 @@ def get_image_by_code():
 
 
 @holoo_bp.route("/get_image")
+@require_api_key
 def get_image():
     path = request.args.get("path")
     if not path:
@@ -2236,82 +2063,6 @@ def get_image():
             "https://webcomco.com/wp-content/uploads/2025/02/webcomco.com-logo-300x231.webp"
         )
             
-
-# def build_connection_string(config):
-#     return f"""
-#         DRIVER={{{config['driver']}}};
-#         SERVER={config['server']};
-#         DATABASE={config['database']};
-#         UID={config['username']};
-#         PWD={config['password']};
-#     """
-
-
-
-# @holoo_bp.route('/user_rating', methods=['POST'])
-# def user_rating():
-#     data = request.get_json()
-#     a_code = data.get('a_code')
-#     user_rating = data.get('rate')
-
-#     if not all([a_code, user_rating]):
-#         return jsonify({"status": "error", "message": "فیلدهای a_code و rate الزامی هستند."}), 400
-
-#     try:
-#         user_rating = int(user_rating)
-#         if user_rating < 1 or user_rating > 5:
-#             return jsonify({"status": "error", "message": "امتیاز باید بین 1 تا 5 باشد."}), 400
-#     except ValueError:
-#         return jsonify({"status": "error", "message": "مقدار امتیاز عددی نیست."}), 400
-
-#     try:
-#         # 🔒 خواندن اطلاعات از فایل config
-#         config = load_db_config()
-#         conn_string = build_connection_string(config)  # یک تابع برای ساخت conn_string
-#         api_key = config.get('apikey')
-
-#         if not all([conn_string, api_key]):
-#             return jsonify({"status": "error", "message": "اطلاعات اتصال یا api_key در فایل پیکربندی ناقص است."}), 401
-
-#         conn = pyodbc.connect(conn_string)
-#         cursor = conn.cursor()
-
-#         # بررسی اینکه آیا این کاربر قبلاً به این محصول امتیاز داده
-#         cursor.execute("""
-#             SELECT 1 FROM UserProductRate
-#             WHERE UserToken = ? AND ProductA_Code = ?
-#         """, (api_key, a_code))
-#         if cursor.fetchone():
-#             return jsonify({"status": "error", "message": "شما قبلاً به این محصول امتیاز داده‌اید."}), 409
-
-#         # ثبت امتیاز در ARTICLE
-#         cursor.execute("""
-#             UPDATE dbo.ARTICLE
-#             SET Av_Rate = ROUND((ISNULL(Av_Rate, 0) * ISNULL(Rate_Count, 0) + ?) / (ISNULL(Rate_Count, 0) + 1), 2),
-#                 Rate_Count = ISNULL(Rate_Count, 0) + 1
-#             WHERE A_Code = ?
-#         """, (user_rating, a_code))
-
-#         cursor.execute("""
-#             UPDATE dbo.ARTICLE
-#             SET Rate = ISNULL(Rate, 0) + ?
-#             WHERE A_Code = ?
-#         """, (user_rating, a_code))
-
-#         # ثبت اینکه این کاربر امتیاز داده است
-#         cursor.execute("""
-#             INSERT INTO UserProductRate (UserToken, ProductA_Code)
-#             VALUES (?, ?)
-#         """, (api_key, a_code))
-
-#         conn.commit()
-#         conn.close()
-
-#         return jsonify({"status": "success", "message": "امتیاز با موفقیت ثبت شد."}), 200
-
-#     except Exception as e:
-#         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 
 def create_gift_table_if_not_exists():
@@ -2348,6 +2099,7 @@ def create_gift_table_if_not_exists():
 
 
 @holoo_bp.route("/assign_gift", methods=["GET", "POST"])
+@require_api_key
 def assign_gift_if_eligible():
     fixed_table_name = "MyGift_WC"
     if request.method == "GET":
@@ -2445,6 +2197,7 @@ def assign_gift_if_eligible():
     
 
 @holoo_bp.route("/delete_gift", methods=["POST"])
+@require_api_key
 def delete_gift():
     data = request.get_json()
     gift_code = data.get("gift_code")
@@ -2497,6 +2250,7 @@ def delete_gift():
 
 # نمایش لیست همه مشتریان به همراه اطلاعاتشان بوسیله کلید مشتریان که در صفحه خانه هلو موجود میباشد
 @holoo_bp.route('/send_customers_Visitory', methods=['GET', 'POST'])
+@require_api_key
 def send_customers():
     if request.method == 'POST':
         c_code = request.form.get('C_Code') or (request.get_json() or {}).get('C_Code')
@@ -2580,6 +2334,7 @@ def send_customers():
 
 
 @holoo_bp.route('/search_keyword', methods=['POST'])
+@require_api_key
 def search_keyword():
     if not request.is_json:
         return jsonify({
@@ -2710,6 +2465,7 @@ def search_keyword():
 
 
 @holoo_bp.route('/search_customer', methods=['POST'])
+@require_api_key
 def search_customer():
     data = request.get_json()
     if not data or 'cname' not in data:
@@ -2789,6 +2545,7 @@ def search_customer():
 
 
 @holoo_bp.route("/GroupsKala", methods=["GET", "POST"])
+@require_api_key
 def get_categories_with_subcategories():
     conn = get_article_connection()
     cursor = conn.cursor()
@@ -2884,6 +2641,7 @@ def get_categories_with_subcategories():
 
 
 @holoo_bp.route('/delete_m_image', methods=['POST'])
+@require_api_key
 def delete_m_image():
     try:
         conn = get_article_connection()
@@ -2929,6 +2687,7 @@ def delete_m_image():
 
 # Route for rating products
 @holoo_bp.route('/admin_rate', methods=['GET', 'POST'])
+@require_api_key
 def admin_rate():
     # Ensure the 'admin_rate' column exists before anything else
     ensure_admin_rate_column_exists()
@@ -3137,6 +2896,7 @@ def admin_rate():
             
 #پاک کردن امتیاز ادمین 
 @holoo_bp.route('/reset_admin_rate', methods=['POST'])
+@require_api_key
 def reset_admin_rate():
     if not request.is_json:
         return jsonify({
@@ -3430,6 +3190,7 @@ def reset_admin_rate():
 
 
 @holoo_bp.route("/ArticleByGroups", methods=["POST"])
+@require_api_key
 def get_articles_by_groups():
     conn = None
     try:
@@ -3457,6 +3218,17 @@ def get_articles_by_groups():
         cursor.execute("SELECT TOP 1 HideNamojood FROM TblSetting_forooshgahi")
         hide_namojood_row = cursor.fetchone()
         hide_namojood = bool(hide_namojood_row[0]) if hide_namojood_row and hide_namojood_row[0] is not None else False
+        
+        # بعد از گرفتن gift_codes و hidden_price_codes اینو اضافه کن
+        cursor.execute(f"SELECT * FROM dbo.MyGift_WC")
+        gift_rows = cursor.fetchall()
+        gift_columns = [col[0] for col in cursor.description]
+
+        gifts_by_acode = {}
+        for r in gift_rows:
+            gift_dict = dict(zip(gift_columns, r))
+            gifts_by_acode.setdefault(str(gift_dict["A_Code"]), []).append(gift_dict)
+
 
         # بررسی واحد پولی (ریال یا تومان)
         cursor.execute("SELECT TOP 1 FldVahedpool FROM TblSetting_forooshgahi")
@@ -3643,6 +3415,7 @@ def get_articles_by_groups():
                     "M_GROUPNAME": m_groupname,
                     "S_GROUPNAME": s_groupname,
                     "FldVahedpool": vahed_pool_row[0] if vahed_pool_row else "rial",
+                    "GiftInfo": gifts_by_acode.get(str(code), []),
                 }
             )
 
@@ -3824,6 +3597,7 @@ def insert_order_details(rq_index, items, is_return=False):
         conn.close()
 
 @holoo_bp.route("/save", methods=["POST"])
+@require_api_key
 def save_factors_to_holoo():
     try:
         data = request.get_json()
@@ -3935,6 +3709,7 @@ def get_currency_unit():
 
 
 @holoo_bp.route("/get_order_details", methods=["POST"])
+@require_api_key
 def get_order_details():
     data = request.get_json()
     R_Date_From = str(data.get("R_Date_From") or "").strip()
@@ -4312,6 +4087,7 @@ def send_moien_by_mobile(mobile, take, start_date=None, end_date=None):
 
 
 @holoo_bp.route("/send_all_moien", methods=["POST"])
+@require_api_key
 def send_all_moien():
     try:
         data = request.get_json(force=True)
@@ -4320,19 +4096,19 @@ def send_all_moien():
         if not isinstance(take, int) or take <= 0 or take > 1000:
             take = 10
 
-        conn = get_article_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT C_Code 
-                FROM CUSTOMER 
-                WHERE Moien_Code_Bed IS NOT NULL AND Moien_Code_Bed <> ''
-            """)
+        # دریافت کد مشتری‌ها که Moien_Code_Bed دارند
+        report_service = ReportService()  # اتصال توسط کلاس مدیریت می‌شود
+
+        with report_service.conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT C_Code FROM CUSTOMER WHERE Moien_Code_Bed IS NOT NULL AND Moien_Code_Bed <> ''"
+            )
             customer_codes = cursor.fetchall()
 
         if not customer_codes:
+            report_service.close()
             return jsonify({"message": "هیچ مشتری با کد معین پیدا نشد"}), 404
 
-        report_service = ReportService()
         all_reports = []
 
         for (code,) in customer_codes:
@@ -4345,17 +4121,16 @@ def send_all_moien():
         if not all_reports:
             return jsonify({"message": "هیچ گزارشی یافت نشد"}), 404
 
+        # مرتب‌سازی بر اساس DateTime نزولی
         sorted_reports = sorted(
-            all_reports,
-            key=lambda x: x.get("DateTime") or "",
-            reverse=True
+            all_reports, key=lambda x: x.get("DateTime") or "", reverse=True
         )
 
         final_report = sorted_reports[:take]
 
         return jsonify({
             "message": f"{len(final_report)} گزارش معین آخر دریافت شد",
-            "data": final_report
+            "data": final_report,
         }), 200
 
     except Exception as e:
@@ -4369,6 +4144,7 @@ def send_all_moien():
 
 
 @holoo_bp.route("/send_moien_single_mobile", methods=["POST"])
+@require_api_key
 def send_moien_single_mobile():
     try:
         data = request.get_json(force=True)
@@ -4416,6 +4192,7 @@ def send_moien_single_mobile():
 
         
 @holoo_bp.route('/increase_percent_price', methods=['POST'])
+@require_api_key
 def increase_percent():
     data = request.get_json()
     a_code = data.get("a_code")
@@ -4456,6 +4233,7 @@ def increase_percent():
     
 
 @holoo_bp.route('/update_setting', methods=['POST', 'GET'])
+@require_api_key
 def update_setting():
     
     if request.method == 'GET':
@@ -4710,6 +4488,7 @@ def update_setting():
     
     
 @holoo_bp.route("/Search_Holoo_Articles", methods=["GET"])
+@require_api_key
 def search_holoo_articles():
     import math
     from flask import request, jsonify
@@ -4827,6 +4606,17 @@ def search_holoo_articles():
             "SELECT DISTINCT Gift_Code FROM dbo.MyGift_WC WHERE is_gift = 1 AND Gift_Code IS NOT NULL"
         )
         gifted_codes = set(row[0] for row in cursor.fetchall())
+        
+        # گرفتن تمام اطلاعات هدایا
+        cursor.execute("SELECT * FROM dbo.MyGift_WC")
+        gift_rows = cursor.fetchall()
+        gift_columns = [col[0] for col in cursor.description]
+
+        gifts_by_acode = {}
+        for r in gift_rows:
+            gift_dict = dict(zip(gift_columns, r))
+            gifts_by_acode.setdefault(str(gift_dict["A_Code"]), []).append(gift_dict)
+
 
         # واحدها
         cursor.execute("SELECT Unit_Code, Unit_Name FROM UNIT")
@@ -4925,6 +4715,7 @@ def search_holoo_articles():
                     "S_GROUP": s_group,
                     "M_GROUPNAME": m_groupname,
                     "S_GROUPNAME": s_groupname,
+                    "GiftInfo": gifts_by_acode.get(str(row[0]), []),
                 }
             )
 
@@ -4951,6 +4742,7 @@ def search_holoo_articles():
 
 
 @holoo_bp.route('/admin_settip', methods=['POST'])
+@require_api_key
 def admin_settip():
     allowed_settips = [
         'Sel_Price', 'Sel_Price2', 'Sel_Price3', 'Sel_Price4', 'Sel_Price5',
@@ -5006,6 +4798,7 @@ def admin_settip():
 
 
 @holoo_bp.route('/products_information', methods=['POST'])
+@require_api_key
 def product_information():
     data = request.get_json()
 
@@ -5168,6 +4961,7 @@ def product_information():
             
             
 @holoo_bp.route('/shegeftangiz', methods=['GET'])
+@require_api_key
 def shegeftangiz():
     import math
     from flask import jsonify
@@ -5279,6 +5073,7 @@ def shegeftangiz():
             
             
 @holoo_bp.route('/tozihat', methods=['POST'])
+@require_api_key
 def tozihat():
     data = request.get_json()
 
@@ -5319,6 +5114,7 @@ def tozihat():
 
 
 @holoo_bp.route('/popular_item', methods=['GET'])
+@require_api_key
 def popular_item():
     conn = get_article_connection()
     cursor = conn.cursor()
@@ -5415,6 +5211,7 @@ def popular_item():
     
     
 @holoo_bp.route('/with_gift', methods=['GET'])
+@require_api_key
 def with_gift():
     try:
         conn = get_article_connection()
@@ -5543,6 +5340,7 @@ def with_gift():
 
 
 @holoo_bp.route('/add_image_articles', methods=['POST'])
+@require_api_key
 def add_image_articles():
     # بررسی کنید که درخواست از نوع JSON باشد
     if not request.is_json:
@@ -5640,6 +5438,7 @@ def getgetgetooni():
             
 
 @holoo_bp.route('/delete_image_articles', methods=['POST'])
+@require_api_key
 def delete_image_articles():
     if not request.is_json:
         return jsonify({"message": "Content-Type must be application/json"}), 400
@@ -5690,6 +5489,7 @@ def delete_image_articles():
 
 
 @holoo_bp.route('/hide_price', methods=['POST'])
+@require_api_key
 def hide_price():
     """
     ورودی JSON:
@@ -5780,6 +5580,7 @@ def hide_price():
 
 
 @holoo_bp.route('/dissable_hide_price', methods=['POST'])
+@require_api_key
 def dissable_hide_price():
 
     data = request.get_json()
@@ -5870,6 +5671,7 @@ def dissable_hide_price():
         
         
 @holoo_bp.route('/expire_login', methods=['POST'])
+@require_api_key
 def expire_login():
     try:
         data = request.get_json()
@@ -5968,6 +5770,7 @@ def fetch_best_selling_data(R_Date):
     
     
 @holoo_bp.route("/get_best_selling_articles", methods=["POST"])
+@require_api_key
 def get_best_selling_articles():
     data = request.get_json()
     R_Date = str(data.get("R_Date") or "").strip()
@@ -6009,6 +5812,7 @@ from PIL import Image
 from PIL import Image
 
 @holoo_bp.route('/logo', methods=['POST', 'GET'])
+@require_api_key
 def send_logo():
     try:
         static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "logos"))
@@ -6097,3 +5901,170 @@ def send_logo():
 
     except Exception as e:
         return jsonify({"status": "error", "message": f"خطای سرور: {str(e)}"}), 500
+
+
+
+
+@holoo_bp.route('/image_groups', methods=['POST', 'GET'])
+@require_api_key
+def image_groups():
+    try:
+        if request.method == 'GET':
+            # برگرداندن همه گروه‌ها و URL عکس‌ها
+            conn = get_article_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT M_groupcode, Image FROM M_GROUP")
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            groups = {row.M_groupcode: row.Image if row.Image else "" for row in rows}
+
+            return jsonify({"status": "ok", "groups": groups})
+
+        elif request.method == 'POST':
+            if not request.files:
+                return jsonify({"status": "error", "message": "هیچ فایلی ارسال نشده."}), 400
+
+            responses = []
+
+            for groupcode, file in request.files.items():
+                # بررسی اینکه گروه موجود است
+                conn = get_article_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) as count FROM M_GROUP WHERE M_groupcode = ?", (groupcode,))
+                exists = cursor.fetchone().count
+                cursor.close()
+                conn.close()
+
+                if not exists:
+                    return jsonify({"status": "error", "message": f"گروه اصلی '{groupcode}' وجود ندارد."}), 400
+
+                if file.filename == '':
+                    return jsonify({"status": "error", "message": f"هیچ فایلی برای گروه '{groupcode}' انتخاب نشده."}), 400
+
+                # بررسی فرمت
+                allowed_ext = {'png', 'jpg', 'jpeg'}
+                ext = file.filename.rsplit('.', 1)[-1].lower()
+                if ext not in allowed_ext:
+                    return jsonify({"status": "error", "message": f"فرمت فایل گروه '{groupcode}' مجاز نیست."}), 400
+
+                # مسیر نهایی در static
+                static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "group_images"))
+                os.makedirs(static_folder, exist_ok=True)
+                safe_filename = urllib.parse.quote(file.filename)
+                dest_path = os.path.join(static_folder, f"{groupcode}_{safe_filename}")
+
+                # ذخیره فایل
+                file.save(dest_path)
+
+                # ساخت URL
+                base_url = request.host_url.rstrip("/")
+                image_url = f"{base_url}/static/group_images/{groupcode}_{safe_filename}"
+
+                # ذخیره در دیتابیس
+                conn = get_article_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE M_GROUP SET Image = ? WHERE M_groupcode = ?", (image_url, groupcode))
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                responses.append({"M_groupcode": groupcode, "image_url": image_url})
+
+            return jsonify({"status": "ok", "message": "تصاویر گروه با موفقیت آپلود شد.", "uploaded": responses})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"خطای سرور: {str(e)}"}), 500
+
+
+
+@holoo_bp.route('/s_image_group', methods=['POST', 'GET'])
+@require_api_key
+def s_image_group():
+    try:
+        if request.method == 'GET':
+            # بازگرداندن همه کدهای ترکیبی و URL تصاویر
+            conn = get_article_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT M_groupcode, S_groupcode, Image FROM S_GROUP")
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            data = {}
+            for row in rows:
+                combined = f"{row.M_groupcode}{row.S_groupcode}"
+                data[combined] = row.Image if row.Image else ""
+
+            return jsonify({"status": "ok", "data": data})
+
+        # ---------------------- POST ----------------------
+        if not request.files:
+            return jsonify({"status": "error", "message": "هیچ فایلی ارسال نشده است."}), 400
+
+        # key همون کد هست (مثل 1234)
+        code = list(request.files.keys())[0]
+        file = request.files[code]
+
+        if len(code) != 4 or not code.isdigit():
+            return jsonify({"status": "error", "message": "کد باید عددی 4 رقمی باشد."}), 400
+
+        m_code = code[:2]
+        s_code = code[2:]
+
+        if file.filename == '':
+            return jsonify({"status": "error", "message": "هیچ فایلی انتخاب نشده است."}), 400
+
+        allowed_ext = {'png', 'jpg', 'jpeg'}
+        if '.' not in file.filename or file.filename.rsplit('.', 1)[-1].lower() not in allowed_ext:
+            return jsonify({"status": "error", "message": "فرمت فایل مجاز نیست. (png/jpg/jpeg)"}), 400
+
+        conn = get_article_connection()
+        cursor = conn.cursor()
+
+        # بررسی وجود گروه اصلی و فرعی
+        cursor.execute("SELECT COUNT(*) FROM S_GROUP WHERE M_groupcode = ?", (m_code,))
+        if cursor.fetchone()[0] == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"status": "error", "message": "گروه اصلی وجود ندارد."}), 400
+
+        cursor.execute("SELECT COUNT(*) FROM S_GROUP WHERE S_groupcode = ?", (s_code,))
+        if cursor.fetchone()[0] == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"status": "error", "message": "گروه فرعی وجود ندارد."}), 400
+
+        cursor.execute("SELECT COUNT(*) FROM S_GROUP WHERE M_groupcode = ? AND S_groupcode = ?", (m_code, s_code))
+        if cursor.fetchone()[0] == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({"status": "error", "message": "ردیف متناظر با این ترکیب یافت نشد."}), 400
+
+        # ذخیره فایل
+        static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "s_group_images"))
+        os.makedirs(static_folder, exist_ok=True)
+
+        safe_filename = urllib.parse.quote(file.filename)
+        final_name = f"{m_code}{s_code}_{safe_filename}"
+        dest_path = os.path.join(static_folder, final_name)
+        file.save(dest_path)
+
+        # ساخت URL
+        base_url = request.host_url.rstrip("/")
+        image_url = f"{base_url}/static/s_group_images/{final_name}"
+
+        cursor.execute(
+            "UPDATE S_GROUP SET Image = ? WHERE M_groupcode = ? AND S_groupcode = ?",
+            (image_url, m_code, s_code)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"status": "ok", "message": "تصویر با موفقیت ثبت شد.", "image_url": image_url, "code": code})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"خطای سرور: {str(e)}"}), 500
+

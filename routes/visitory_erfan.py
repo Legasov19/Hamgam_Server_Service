@@ -1718,7 +1718,6 @@ def get_customer_cities():
         if "conn" in locals():
             conn.close()
 
-
 def get_visitors_from_customer():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1747,32 +1746,35 @@ def insert_visitors_into_tblsetting(customers):
     cursor = conn.cursor()
 
     for customer in customers:
+        # اول بررسی کنیم این بازاریاب قبلا ثبت شده یا نه
         cursor.execute(
-            """
-            IF NOT EXISTS (
-                SELECT 1 FROM TblSetting_Visitori WHERE FldC_Visitor = ?
-            )
-            BEGIN
+            "SELECT 1 FROM TblSetting_Visitori WHERE FldC_Visitor = ?",
+            (customer["C_Code"],)
+        )
+        exists = cursor.fetchone()
+
+        if not exists:
+            cursor.execute(
+                """
                 INSERT INTO TblSetting_Visitori (
                     FldC_Visitor, FldMob, FldN_Visitor, WDarsadSoud,
                     FldVahedpool, FldNameForooshgah, FldTellForooshgah,
                     FldAddressForooshgah, FldEtelaResani, FldZamanTahvil
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            END
-            """,
-            (
-                customer["C_Code"],  # FldC_Visitor
-                customer["C_Mobile"],  # FldMob
-                customer["C_Name"],  # FldN_Visitor
-                customer["Vaseteh_Porsant"] or 0,  # WDarsadSoud
-                "ریال",  # FldVahedpool
-                customer["C_AliasName"] or "",  # FldNameForooshgah
-                customer["C_Tel"] or "",  # FldTellForooshgah
-                customer["C_Address"] or "",  # FldAddressForooshgah
-                "ساعت کار فروشگاه از 7 صبح لغایت 19 می‌باشد",  # FldEtelaResani
-                "تحویل 24 ساعت پس از تاریخ فاکتور می‌باشد",  # FldZamanTahvil
-            ),
-        )
+                """,
+                (
+                    customer["C_Code"],          # FldC_Visitor
+                    customer["C_Mobile"],        # FldMob
+                    customer["C_Name"],          # FldN_Visitor
+                    customer["Vaseteh_Porsant"] or 0,  # WDarsadSoud
+                    "ریال",                      # FldVahedpool
+                    customer["C_AliasName"] or "",  # FldNameForooshgah
+                    customer["C_Tel"] or "",        # FldTellForooshgah
+                    customer["C_Address"] or "",    # FldAddressForooshgah
+                    "ساعت کار فروشگاه از 7 صبح لغایت 19 می‌باشد",  # FldEtelaResani
+                    "تحویل 24 ساعت پس از تاریخ فاکتور می‌باشد",   # FldZamanTahvil
+                ),
+            )
 
     conn.commit()
     cursor.close()
@@ -1780,15 +1782,14 @@ def insert_visitors_into_tblsetting(customers):
 
 
 @Holoo_bp.route("/send_visitors", methods=["POST"])
-@require_api_key
 def send_visitors():
     try:
         customers = get_visitors_from_customer()
         insert_visitors_into_tblsetting(customers)
         return jsonify({"message": f"{len(customers)} بازاریاب ذخیره شد."})
     except Exception as e:
+        logging.error(f"Error in send_visitors: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 @Holoo_bp.route("/get_customers_by_city", methods=["POST"])
 @require_api_key
